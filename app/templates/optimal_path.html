@@ -96,7 +96,7 @@
         document.getElementById('uploadForm').addEventListener('submit', function(event) {
             event.preventDefault();
             var formData = new FormData(this);
-
+        
             fetch(this.action, {
                 method: 'POST',
                 body: formData
@@ -104,8 +104,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.processed_image) {
-            
-                    loadImage(data.processed_image, 'processedCanvas');
+                    // Display base64 image in canvas
+                    loadImage("data:image/png;base64," + data.processed_image, 'processedCanvas');
                 } else {
                     console.error('Failed to load images.');
                 }
@@ -114,16 +114,18 @@
                 console.error('Error:', error);
             });
         });
-
-        function loadImage(imagePath, canvasId) {
+        
+        function loadImage(base64Image, canvasId) {
             var canvas = document.getElementById(canvasId);
             var ctx = canvas.getContext('2d');
             var img = new Image();
             img.onload = function() {
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);  // Clear previous image
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);  // Draw new image
             };
-            img.src = imagePath;
+            img.src = base64Image;  // Set the source to the base64 image
         }
+        
     </script>
 </body>
 </html>
