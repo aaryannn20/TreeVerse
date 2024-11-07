@@ -1,4 +1,4 @@
-# Image Analytics for Tree Enumeration
+<!-- # Image Analytics for Tree Enumeration
 
 ## Introduction
 
@@ -42,4 +42,4 @@ The project includes a website with a landing page and a dashboard offering the 
    ```bash
    git clone https://github.com/your-username/your-repository.git
 
-   
+    -->
