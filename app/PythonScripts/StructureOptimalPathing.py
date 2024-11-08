@@ -1,10 +1,24 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
 import numpy as np
-import math
-import heapq
 import matplotlib.pyplot as plt
+from skimage import io
 import cv2
-import io 
-import base64
+import heapq
+import math
+
+
+# In[2]:
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+from skimage import io
+import cv2
 class ImageSeg:
 #Initializing the path of image and threshold value by taking as class parameters
     def __init__(self,path):
@@ -14,7 +28,7 @@ class ImageSeg:
     #Visualize the raw rgb image
     def visualize_rgb(self):
         rgb_img = self.img
-        # plt.imshow(rgb_img)
+        plt.imshow(rgb_img)
 
     #Nullify the R and B values in the image matrix
     def RGNull(self):
@@ -47,7 +61,7 @@ class ImageSeg:
                 else:
                     gray_img[i][j]=0
 
-        # plt.imshow(gray_img)
+        plt.imshow(gray_img)
         return gray_img
 
     #Comparison b/w raw rgb, grayscaled and thresholded images
@@ -72,46 +86,63 @@ class ImageSeg:
                     count+=1
 
         return count
+
+
+# In[15]:
+
+
+import numpy as np
+import math
+import heapq
+import matplotlib.pyplot as plt
+
 class OptimalPathing:
     def __init__(self, img, PATH):
         self.img = img
         self.PATH = PATH
 
     def Precompute_EuclideanDist(self, img):
-        rows, cols = img.shape
-        AdjMat = np.fromfunction(lambda i, j: np.sqrt((i - (rows - 1)) ** 2 + (j - (cols - 1)) ** 2), (rows, cols))
+        rows, cols = len(img), len(img[0])
+        AdjMat = np.zeros((rows, cols))
+        for i in range(rows):
+            for j in range(cols):
+                AdjMat[i][j] = math.sqrt((i - (rows - 1)) ** 2 + (j - (cols - 1)) ** 2)
         return AdjMat
 
     def create_graph(self, binary_image, target):
         binary_image = np.array(binary_image)
-        rows, cols = binary_image.shape
-        TreeCount_Density = 115 / (rows * cols) * 1000  # Confidence_Val
+        graph = {}
+        rows, cols = len(binary_image), len(binary_image[0])
+        TreeCount_Density = 115 / (rows * cols) * 1000     # Confidence_Val
         TCD_FACTOR = math.exp(TreeCount_Density * 100)
         AdjMat = self.Precompute_EuclideanDist(binary_image)
-
-        def compute_avg_density(ni, nj, dx, dy):
-            alpha_vals = []
-            beta_vals = []
-            for fact in range(1, 4):
-                if 0 <= ni - fact * dx < rows and 0 <= nj + fact * dy < cols:
-                    alpha_vals.append(255 - binary_image[ni - fact * dx, nj + fact * dy])
-                if 0 <= ni + fact * dx < rows and 0 <= nj - fact * dy < cols:
-                    beta_vals.append(255 - binary_image[ni + fact * dx, nj - fact * dy])
-            avg_density = (sum(alpha_vals) + sum(beta_vals)) / 20
-            return avg_density
-
-        graph = {}
         for i in range(rows):
             for j in range(cols):
                 neighbors = []
-                for dx, dy in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]:
-                    ni, nj = i + dx, j + dy
-                    if 0 <= ni < rows and 0 <= nj < cols:
-                        euclid_dist = math.sqrt((ni - target[0]) ** 2 + (nj - target[1]) ** 2)
-                        avg_density = compute_avg_density(ni, nj, dx, dy)
-                        weight = TCD_FACTOR * (255 - binary_image[ni, nj]) + euclid_dist ** 2 + 50000 * np.log(avg_density + 1)
-                        neighbors.append(((ni, nj), weight))
-                graph[(i, j)] = neighbors
+                for dx in [-1, 0, 1]:
+                    for dy in [-1, 0, 1]:
+                        if dx == 0 and dy == 0:
+                            continue
+                        ni, nj = i + dx, j + dy
+                        if 0 <= ni < rows and 0 <= nj < cols:
+                            euclid_dist = math.sqrt((ni - target[0]) ** 2 + (nj - target[1]) ** 2)
+                            avg_density = 0
+                            for fact in range(1, 11):
+                                try:
+                                    alpha_val = 255 - binary_image[ni - fact * dx][nj + fact * dy]
+                                except:
+                                    alpha_val = 0
+                                try:
+                                    beta_val = 255 - binary_image[ni + fact * dx][nj - fact * dy]
+                                except:
+                                    beta_val = 0
+                                avg_density += alpha_val + beta_val
+
+                            avg_density /= 20  # Average density over the 20 pixels
+                            neighbors.append(((ni, nj), TCD_FACTOR * (255 - binary_image[ni][nj]) +
+                                              euclid_dist ** 2 + 50000 * np.log(avg_density + 1)))
+
+                graph[(i, j)] = neighbors  # Store the neighbors for the current pixel
         return graph
 
     def trace_path(self, parents, start, target):
@@ -123,15 +154,16 @@ class OptimalPathing:
         path.append(start)
         path.reverse()
         return path
-
+    
     def ComputeAStar(self, start_pixel=(0, 0), target_pixel=(639, 639)):
         graph = self.create_graph(self.img, target_pixel)
+        # Find the shortest path
         parents = {}
         heap = [(0, start_pixel)]
         visited = set()
 
         while heap:
-            cost, current = heapq.heappop(heap)
+            (cost, current) = heapq.heappop(heap)
 
             if current in visited:
                 continue
@@ -154,14 +186,39 @@ class OptimalPathing:
 
         # Visualize the image and the shortest path
         image = np.array(self.img)
-        x_coords, y_coords = zip(*shortest_path)  # Extract x, y coordinates for plotting
-        # Convert grayscale to RGB
-        image_rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        x_coords, y_coords = zip(*shortest_path)   # Extract x, y coordinates for plotting
+        plt.figure(figsize=[20, 14])
+        plt.imshow(image, cmap='gray')
+        
+        # Plot starting and ending points
+        plt.plot(start_pixel[1], start_pixel[0], 'go')  # 'go' indicates green circle for start point
+        plt.plot(target_pixel[1], target_pixel[0], 'ro')  # 'ro' indicates red circle for end point
+        
+        # Plot the path
+        plt.plot(y_coords, x_coords, color='blue', linewidth=2) # Plot the path in blue 
+        # image = image.reshape(168, 300)
+        # plt.imshow(image, cmap='gray')  
+        plt.show()   # Show the image with the path
 
-        thickness = 3  # You can adjust the thickness value as needed
-        for i in range(len(x_coords) - 1):
-            start_point = (y_coords[i], x_coords[i])
-            end_point = (y_coords[i + 1], x_coords[i + 1])
-            image_rgb = cv2.line(image_rgb, start_point, end_point, (255, 0, 0), thickness)
+        # plt.plot(y_coords, x_coords, color='red', linewidth=2)
+        # plt.imshow(plt.imread(self.PATH)) 
+        
 
-        return image_rgb
+
+# In[17]:
+
+
+if __name__ == "__main__":
+    PATH = r"C:\Users\aryan\OneDrive\Desktop\TreeVerse\app\Dataset\train\images\rc_261714_4_174456_4_19_jpg.rf.1f075a7e5665a70a00212314ec6416b8.jpg"
+    obj = ImageSeg(PATH)
+    img = obj.IsoGrayThresh()
+    print(img.shape)
+    obj1 = OptimalPathing(img,PATH)
+    obj1.ComputeAStar()
+
+
+# In[ ]:
+
+
+
+

@@ -1,9 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, send_file, flash, jsonify, request
+import base64
+from flask import Blueprint,Flask, redirect, url_for, send_file, request, jsonify, flash, render_template, current_app
 import requests
 from werkzeug.utils import secure_filename
 import os
 from app.optimalPath import ImageSeg, OptimalPathing
 import cv2
+from urllib.parse import quote
 
 # Initialize the Blueprint
 main = Blueprint('main', __name__)
@@ -48,18 +50,14 @@ def optimal_path():
 def historical_data():
     return render_template('weather.html')
 
-@main.route('/about')
-def about():
-    return "About Us"
 
 @main.route('/predict')
 def predict():
     return render_template('predict.html')
 
 
-@main.route('/upload', methods=['GET','POST'])
+@main.route('/upload', methods=['GET', 'POST'])
 def upload_image():
-    processed_image = None
     if 'file' not in request.files:
         flash('No file part')
         return render_template('optimal_path.html')
@@ -68,46 +66,55 @@ def upload_image():
     if file.filename == '':
         flash('No selected file')
         return render_template('optimal_path.html')
-    
+
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        # Save the uploaded file to the upload folder
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+            
+        file_path = os.path.join(upload_folder, filename)
         file.save(file_path)
 
-        # Process the uploaded image using ImageSeg and OptimalPathing classes
+
+        # Initialize ImageSeg and process the image
         image_processor = ImageSeg(file_path)
         thresholded_image = image_processor.IsoGrayThresh()
-        optimal_path_processor = OptimalPathing(thresholded_image,file_path)
+
+        # Initialize OptimalPathing and compute the path
+        optimal_path_processor = OptimalPathing(thresholded_image, file_path)
         processed_image = optimal_path_processor.ComputeAStar()
 
-        # Save the processed images to the upload folder
-        processed_image_path = os.path.join(UPLOAD_FOLDER, 'processed_image.png')
+        # Save the processed image
+        processed_image_path = os.path.join(upload_folder, 'processed_image.png')
         cv2.imwrite(processed_image_path, processed_image)
-       
-        processed_image_path = url_for('static', filename='UPLOADS/processed_image.png')
-    
 
-        # Render the template with processed images
-    # Return JSON response
-    return jsonify({
-        'processed_image': processed_image_path
-      
-    })
+        # Convert the processed image to a base64 string
+        with open(processed_image_path, "rb") as img_file:
+            base64_image = base64.b64encode(img_file.read()).decode('utf-8')
 
+        # Return the processed image as a base64 string
+        return jsonify({'processed_image': base64_image})
+
+    return jsonify({'error': 'File processing failed'}), 400
 
 
 @main.route('/weather', methods=['GET'])
 def get_weather():
     city = request.args.get('city')
-    if not city:
+    if not city or len(city) < 3:
         return jsonify({'error': 'City parameter is required'}), 400
 
-    api_url = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{city}?unitGroup=metric&key=VK8AZQ82WD8X8RZKZ9DBJEGVQ&contentType=json"
+    # Use f-string to include the city parameter
+    from urllib.parse import quote
+    encoded_city = quote(city)
+    api_url = f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{encoded_city}?unitGroup=metric&key=VK8AZQ82WD8X8RZKZ9DBJEGVQ&contentType=json"
+
+    print(f"Constructed API URL: {api_url}")  # Debugging line
 
     try:
         response = requests.get(api_url)
-        response.raise_for_status()  # Raise an error for bad status codes (e.g., 404, 500)
+        response.raise_for_status()
         data = response.json()
         return jsonify(data)
     except requests.exceptions.RequestException as e:

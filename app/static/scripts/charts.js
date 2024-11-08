@@ -1,13 +1,17 @@
 let temperatureChart; 
+let debounceTimeout;
 const searchCity = document.getElementById('searchCity');
 searchCity.addEventListener('input', () => {
-  const city = searchCity.value.trim(); // Trim whitespace from input
-  if (city === '') {
-    return; // Exit early if no city input
-  }
-  // const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-  // const apiUrl = `${proxyUrl}weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${city}?unitGroup=us&key="{}"&contentType=json`;
-  fetch(`/weather?city=${city}`)
+  clearTimeout(debounceTimeout);
+
+  debounceTimeout = setTimeout(() => {
+    const city = searchCity.value.trim();
+    if (city === '') {
+      return;
+    }
+    console.log(`Final city input: ${city}`); // Debugging line
+  
+  fetch(`/weather?city=${encodeURIComponent(city)}`)
     .then(response => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -187,4 +191,5 @@ searchCity.addEventListener('input', () => {
       console.error('Error fetching or parsing data:', error);
       // Optionally display an error message to the user
     });
+  },500);
 });

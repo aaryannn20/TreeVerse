@@ -55,11 +55,29 @@
         #green-cover-percentage, #idle-land-percentage {
             font-size: 24px;
         }
-        
+
         canvas {
             border: 1px solid #000;
             display: block;
             margin: 0 auto; /* Center align canvas */
+            margin-bottom: 40px; /* Add space between the canvas and the end of the page */
+        }
+
+        /* Waiting spinner */
+        #waiting-spinner {
+            display: none;
+            margin: 20px auto;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -67,19 +85,22 @@
     <center>
         <h2>Optimal Pathing</h2>
         <form id="uploadForm" action="{{ url_for('main.upload_image') }}" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" id="photo" accept=".png, .jpg, .jpeg" required required onchange="previewImage(event)">
+            <input type="file" name="file" id="photo" accept=".png, .jpg, .jpeg" required onchange="previewImage(event)">
             <br>
-            <img id="photo-preview" src="#" alt="Selected Image Preview">
+            <img id="photo-preview" src="#" alt="Selected Image Preview" style="display:none;">
             <br>
             <button type="submit">Process Image</button>
         </form>
+        
+        <!-- Waiting Spinner -->
+        <div id="waiting-spinner"></div>
     </center>
 
     <h3>Processed Image:</h3>
-    <canvas id="processedCanvas" width="400" height="300"></canvas>
+    <canvas id="processedCanvas" width="640" height="640"></canvas>
 
     <script>
-
+        // Function to preview the uploaded image
         function previewImage(event) {
             var input = event.target;
             var reader = new FileReader();
@@ -93,9 +114,14 @@
             reader.readAsDataURL(input.files[0]);
         }
 
+        // Event listener for the form submission
         document.getElementById('uploadForm').addEventListener('submit', function(event) {
             event.preventDefault();
-            var formData = new FormData(this);
+            
+            // Show the waiting spinner
+            document.getElementById('waiting-spinner').style.display = 'block';
+            
+            const formData = new FormData(this);
         
             fetch(this.action, {
                 method: 'POST',
@@ -103,29 +129,35 @@
             })
             .then(response => response.json())
             .then(data => {
+                // Hide the waiting spinner
+                document.getElementById('waiting-spinner').style.display = 'none';
+                
                 if (data.processed_image) {
-                    // Display base64 image in canvas
                     loadImage("data:image/png;base64," + data.processed_image, 'processedCanvas');
                 } else {
-                    console.error('Failed to load images.');
+                    console.error('Failed to process image.');
                 }
             })
             .catch(error => {
+                // Hide the waiting spinner on error
+                document.getElementById('waiting-spinner').style.display = 'none';
                 console.error('Error:', error);
             });
         });
-        
+
+        // Function to load image into canvas
         function loadImage(base64Image, canvasId) {
-            var canvas = document.getElementById(canvasId);
-            var ctx = canvas.getContext('2d');
-            var img = new Image();
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
             img.onload = function() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);  // Clear previous image
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);  // Draw new image
+                // Clear the canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // Draw the image on the canvas
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             };
-            img.src = base64Image;  // Set the source to the base64 image
+            img.src = base64Image;
         }
-        
     </script>
 </body>
 </html>
