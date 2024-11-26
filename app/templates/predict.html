@@ -4,48 +4,107 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <title>Analysis</title>
+    <title>Analysis Dashboard</title>
 
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Montserrat', sans-serif;
             margin: 0;
             padding: 0;
+            background-color: #f5f5f5;
         }
-
+    
         header {
-            background-color: #333;
+            background-color: #1E3A8A;
             color: white;
-            padding: 10px;
+            padding: 20px;
             text-align: center;
         }
-
-        .toggle-buttons {
-            margin-top: 10px;
+    
+        h1 {
+            margin: 0;
+            font-size: 36px;
+            font-weight: 700;
         }
-
-        .toggle-buttons a {
-            background-color: #4CAF50;
+    
+        .dashboard-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100vh - 80px);
+            margin: 40px 0;
+        }
+    
+        .dashboard-card {
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            width: 300px;
+            margin: 20px;
+            transition: transform 0.3s ease;
+        }
+    
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+    
+        .dashboard-card h2 {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            color: #1E3A8A;
+        }
+    
+        .dashboard-card img {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+        }
+    
+        .dashboard-card a {
+            display: block;
+            background-color: #65A30D;
             color: white;
-            border: none;
-            padding: 10px 20px;
-            margin: 5px;
-            cursor: pointer;
             text-decoration: none;
-            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+    
+        .dashboard-card a:hover {
+            background-color: #4A7C0C;
         }
     </style>
 </head>
 <body>
     <header>
         <h1>Analysis</h1>
-        <div class="toggle-buttons">
-            <a href="{{url_for('main.object_detection')}}" target="_blank" >Tree Count</a>
-            <a href="{{url_for('main.object_segmentation')}}" target="_blank">Green Cover</a>
-            <a href="{{url_for('main.tree_species')}}" target="_blank" >Map Boundary</a>
-            <a href="{{url_for('main.optimal_path')}}" target="_blank">Optimal Pathing</a>
-            <a href="{{url_for('main.historical_data')}}" target="_blank">Historical Data</a>
-        </div>
     </header>
+    <div class="dashboard-container">
+        <div class="dashboard-card">
+            <img src="{{ url_for('static', filename='images/Treenew.png') }}" alt="Tree Icon">
+            <h2>Tree Count</h2>
+            <a href="{{url_for('main.object_detection')}}" target="_blank">Analyze</a>
+        </div>
+        <div class="dashboard-card">
+            <img src="{{ url_for('static', filename='images/green-cover.jpg') }}" alt="Tree Icon">
+            <h2>Green Cover</h2>
+            <a href="{{url_for('main.object_segmentation')}}" target="_blank">Analyze</a>
+        </div>
+        <div class="dashboard-card">
+            <img src="{{ url_for('static', filename='images/pathing.jpg') }}" alt="Tree Icon">
+            <h2>Optimal Pathing</h2>
+            <a href="{{url_for('main.optimal_path')}}" target="_blank">Analyze</a>
+        </div>
+        <div class="dashboard-card">
+            <img src="{{ url_for('static', filename='icons/sunny.png') }}" alt="Tree Icon">
+            <h2>Historical Data</h2>
+            <a href="{{url_for('main.historical_data')}}" target="_blank">Analyze</a>
+        </div>
+    </div>
 </body>
 </html>
