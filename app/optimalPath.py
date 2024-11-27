@@ -19,7 +19,7 @@ class ImageSeg:
     #Nullify the R and B values in the image matrix
     def RGNull(self):
         arr = np.array(self.img)
-        greenval = 0
+        greenval = np.float64(0)
         count = 0
         for i in range(len(arr)):
             for j in range(len(arr[i])):
